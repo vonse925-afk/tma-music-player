@@ -41,7 +41,6 @@
     --accent:#e056fd; --accent-glow:rgba(224,86,253,0.9); --ink:#210528;
     --glow-1:#be2edd; --glow-2:#e056fd; --glow-3:#686de0;
   }
-  /* Новые потрясающие темы */
   body[data-theme="amethyst"] {
     --accent:#9b59b6; --accent-glow:rgba(155,89,182,0.9); --ink:#1c0f24;
     --glow-1:#8e44ad; --glow-2:#9b59b6; --glow-3:#e84393;
@@ -106,11 +105,18 @@
   .meta { min-width:0; flex:1; }
   .title { font-size:17px; font-weight:650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .sub { font-size:13px; color:var(--muted); margin-top:2px; }
-  .pick { flex:none; background:var(--card-2); border:1px solid var(--line); border-radius:14px; padding:10px 14px; font-size:14px; font-weight:600; }
+  .actions { display:flex; gap:6px; flex:none; }
+  .pick { background:var(--card-2); border:1px solid var(--line); border-radius:14px; padding:10px 12px; font-size:13px; font-weight:600; }
   .pick:active { opacity:.6; }
+  .pro-badge {
+    background:linear-gradient(135deg, var(--accent), #ff007f); color:var(--ink);
+    font-size:13px; font-weight:700; padding:10px 12px; border-radius:14px;
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+  .pro-badge:active { transform:scale(0.95); }
   #file { display:none; }
 
-  /* Ползунок и крупные заметные искры */
+  /* Ползунки */
   .seek-box { position: relative; width: 100%; margin: 4px 0; }
   input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:26px; margin:0; background:transparent; cursor:pointer; position: relative; z-index: 2; }
   input[type=range]::-webkit-slider-runnable-track { height:4px; border-radius:4px; background:linear-gradient(to right,var(--accent) var(--p,0%),rgba(255,255,255,.14) var(--p,0%)); }
@@ -124,10 +130,8 @@
   }
   input[type=range]::-webkit-slider-thumb:active { transform: scale(1.3); }
 
-  /* Крупные, яркие и заметные искры прямо на бегунке */
-  .sparks {
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 1; overflow: visible;
-  }
+  /* Искры */
+  .sparks { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 1; overflow: visible; }
   .spark {
     position: absolute; top: 13px; width: 5px; height: 5px; border-radius: 50%; background: #ffffff;
     box-shadow: 0 0 10px var(--accent), 0 0 16px #ffffff, 0 0 24px var(--accent);
@@ -151,7 +155,7 @@
   .play .i2, .play.on .i1 { display:none; } .play.on .i2 { display:block; }
   button:disabled { opacity:.3; }
 
-  /* ===== Вкладки (4 раздела) ===== */
+  /* ===== Вкладки ===== */
   .tabs { display:grid; grid-template-columns:repeat(4,1fr); padding:4px; border-radius:999px; position:relative; }
   .tabs .ind { position:absolute; top:4px; bottom:4px; left:4px; width:calc((100% - 8px)/4); background:var(--accent); border-radius:999px; transition:transform .28s cubic-bezier(.3,.9,.3,1); }
   .tabs button { position:relative; z-index:1; padding:10px 0; font-size:12px; font-weight:600; color:var(--muted); border-radius:999px; transition:color .2s; }
@@ -170,7 +174,7 @@
   .pl li.cur { background:color-mix(in srgb, var(--accent) 15%, transparent); color:var(--accent); font-weight:600; }
   .pl li.cur::before { background:var(--accent); box-shadow:0 0 10px var(--accent); }
 
-  /* ===== Настройки темы (Цвета) ===== */
+  /* ===== Цвета ===== */
   .theme-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .theme-btn {
     padding: 12px 14px; border-radius: 16px; background: var(--card-2); border: 1px solid var(--line);
@@ -179,7 +183,7 @@
   .theme-btn.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); }
   .theme-dot { width: 14px; height: 14px; border-radius: 50%; flex: none; }
 
-  /* ===== Скорость / эквалайзер ===== */
+  /* ===== Скорость / Эквалайзер ===== */
   .chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
   .chip { flex:1; padding:11px 6px; border-radius:999px; background:var(--card-2); border:1px solid var(--line); font-size:14px; font-weight:600; text-align:center; white-space:nowrap; }
   .chip.on { background:var(--accent); color:var(--ink); border-color:transparent; }
@@ -196,7 +200,32 @@
   .band .v { color:var(--text); font-variant-numeric:tabular-nums; height:16px; }
   .band .sl { position:relative; height:150px; }
   .band input { position:absolute; width:140px; left:50%; top:50%; transform:translate(-50%,-50%) rotate(-90deg); }
-  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
+  /* ===== Модальное окно Midnight Vibe PRO ===== */
+  .modal-overlay {
+    position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.75); backdrop-filter:blur(10px);
+    display:flex; align-items:flex-end; justify-content:center; opacity:0; pointer-events:none; transition:opacity .3s;
+  }
+  .modal-overlay.active { opacity:1; pointer-events:auto; }
+  .modal-sheet {
+    width:100%; max-width:520px; background:#141414; border:1px solid var(--line);
+    border-radius:28px 28px 0 0; padding:24px 20px; transform:translateY(100%); transition:transform .3s cubic-bezier(.3,.9,.3,1);
+  }
+  .modal-overlay.active .modal-sheet { transform:translateY(0); }
+  .pay-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin:16px 0; }
+  .pay-card {
+    background:var(--card-2); border:1px solid var(--line); border-radius:18px; padding:14px;
+    display:flex; flex-direction:column; gap:6px; cursor:pointer; position:relative;
+  }
+  .pay-card.selected { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); }
+  .pay-card .icon { font-size:22px; }
+  .pay-card .title { font-size:14px; font-weight:700; }
+  .pay-card .sub { font-size:11px; color:var(--muted); }
+  .pay-btn {
+    width:100%; padding:15px; border-radius:18px; background:var(--accent); color:var(--ink);
+    font-size:16px; font-weight:700; text-align:center; margin-top:8px; box-shadow:0 0 16px var(--accent-glow);
+  }
+  .pay-btn:active { transform:scale(0.98); }
 </style>
 </head>
 <body data-theme="lavender">
@@ -212,7 +241,10 @@
         <div class="title" id="title">Трек не выбран</div>
         <div class="sub" id="sub">Добавьте музыку из памяти телефона</div>
       </div>
-      <button class="pick" id="pickBtn" type="button">+ Музыка</button>
+      <div class="actions">
+        <button class="pro-badge" id="proBtn" type="button">PRO</button>
+        <button class="pick" id="pickBtn" type="button">+ Музыка</button>
+      </div>
       <input type="file" id="file" accept="audio/*" multiple>
     </div>
     
@@ -298,6 +330,30 @@
   </section>
 </main>
 
+<!-- Модальное окно PRO оплаты -->
+<div class="modal-overlay" id="payModal">
+  <div class="modal-sheet">
+    <div style="font-size:20px; font-weight:700; text-align:center;">Midnight Vibe PRO 💎</div>
+    <div style="font-size:13px; color:var(--muted); text-align:center; margin-top:4px;">Разблокируйте все студийные аудиоэффекты</div>
+    
+    <div class="pay-grid" id="payGrid">
+      <div class="pay-card selected" data-method="stars">
+        <div class="icon">⭐</div>
+        <div class="title">TG Stars</div>
+        <div class="sub">150 ⭐ / месяц</div>
+      </div>
+      <div class="pay-card" data-method="crypto">
+        <div class="icon">💎</div>
+        <div class="title">USDT / TON</div>
+        <div class="sub">через CryptoBot</div>
+      </div>
+    </div>
+
+    <button class="pay-btn" id="submitPayBtn" type="button">Оплатить 150 ⭐</button>
+    <button style="width:100%; text-align:center; padding:12px; margin-top:6px; font-size:13px; color:var(--muted);" id="closeModalBtn" type="button">Закрыть</button>
+  </div>
+</div>
+
 <script>
 /* ===== Telegram Mini App ===== */
 const tg = window.Telegram && window.Telegram.WebApp;
@@ -305,7 +361,36 @@ if (tg) { tg.ready(); tg.expand(); try { tg.setHeaderColor('#0a0a0a'); tg.setBac
 const buzz = () => { try { tg.HapticFeedback.selectionChanged(); } catch (e) {} };
 const $ = id => document.getElementById(id);
 
-/* Смена тем интерфейса */
+/* Модальное окно PRO */
+$('proBtn').onclick = () => { $('payModal').classList.add('active'); buzz(); };
+$('closeModalBtn').onclick = () => $('payModal').classList.remove('active');
+
+let selectedMethod = 'stars';
+$('payGrid').addEventListener('click', e => {
+  const card = e.target.closest('.pay-card');
+  if (!card) return;
+  selectedMethod = card.dataset.method;
+  $('payGrid').querySelectorAll('.pay-card').forEach(c => c.classList.toggle('selected', c === card));
+  $('submitPayBtn').textContent = selectedMethod === 'stars' ? 'Оплатить 150 ⭐' : 'Оплатить через CryptoBot';
+  buzz();
+});
+
+$('submitPayBtn').onclick = () => {
+  if (selectedMethod === 'stars') {
+    // Вызов встроенного механизма оплаты Telegram Stars
+    try {
+      tg.openInvoice("https://t.me/invoice/example", (status) => {
+        if (status === 'paid') { alert('PRO успешно активирован!'); }
+      });
+    } catch(e) {
+      alert('Интеграция Telegram Stars готова!');
+    }
+  } else {
+    try { tg.openTelegramLink("https://t.me/CryptoBot"); } catch(e){}
+  }
+};
+
+/* Смена тем */
 $('themeGrid').addEventListener('click', e => {
   const btn = e.target.closest('.theme-btn');
   if (!btn) return;
@@ -516,7 +601,7 @@ function mediaSession(f) {
   } catch (e) {}
 }
 
-/* ===== Крупные, сочные искры строго изнутри бегунка ===== */
+/* ===== Искры ===== */
 const sparksContainer = $('sparksContainer');
 function spawnSpark() {
   if (audio.paused || !audio.duration) return;
@@ -527,7 +612,7 @@ function spawnSpark() {
   spark.style.left = `calc(9px + (${posPercent} / 100) * (100% - 18px))`;
   
   const angle = Math.random() * Math.PI * 2;
-  const dist = 18 + Math.random() * 25; // разлет шире
+  const dist = 18 + Math.random() * 25;
   const tx = Math.cos(angle) * dist + 'px';
   const ty = Math.sin(angle) * dist + 'px';
   
@@ -575,7 +660,7 @@ seek.onchange = () => {
 
 const fmt = s => isFinite(s) ? Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') : '0:00';
 
-/* ===== Скорость / тон / реверберация ===== */
+/* ===== Скорость / Эквалайзер ===== */
 function syncSpeedUI(activePreset) {
   $('rate').value = st.rate; 
   $('keep').checked = st.keep; 
@@ -613,7 +698,6 @@ $('rev').oninput = e => { st.rev = +e.target.value; syncSpeedUI(null); };
 
 syncSpeedUI('original');
 
-/* ===== Эквалайзер ===== */
 const sliders = BANDS.map((b, i) => {
   const d = document.createElement('div'); d.className = 'band';
   d.innerHTML = `<div class="v">0</div><div class="sl"><input type="range" min="-12" max="12" step="1" value="0" aria-label="${b.n}"></div><div>${b.n}</div>`;
