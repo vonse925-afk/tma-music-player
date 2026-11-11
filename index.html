@@ -64,7 +64,7 @@
   .pick:active { opacity:.6; }
   #file { display:none; }
 
-  /* Ползунки с эффектом искр/свечения */
+  /* Ползунки с неоновым свечением искр */
   input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:26px; margin:0; background:transparent; cursor:pointer; }
   input[type=range]::-webkit-slider-runnable-track { height:4px; border-radius:4px; background:linear-gradient(to right,var(--accent) var(--p,0%),rgba(255,255,255,.14) var(--p,0%)); }
   input[type=range]::-moz-range-track { height:4px; border-radius:4px; background:rgba(255,255,255,.14); }
@@ -72,13 +72,13 @@
   
   input[type=range]::-webkit-slider-thumb {
     -webkit-appearance:none; width:18px; height:18px; margin-top:-7px; border-radius:50%; background:var(--text); border:0;
-    box-shadow: 0 0 8px var(--accent), 0 0 12px rgba(180,167,245,0.8);
+    box-shadow: 0 0 8px var(--accent), 0 0 14px rgba(180,167,245,0.9);
     transition: transform 0.1s;
   }
   input[type=range]::-webkit-slider-thumb:active { transform: scale(1.25); }
   input[type=range]::-moz-range-thumb {
     width:18px; height:18px; border-radius:50%; background:var(--text); border:0;
-    box-shadow: 0 0 8px var(--accent), 0 0 12px rgba(180,167,245,0.8);
+    box-shadow: 0 0 8px var(--accent), 0 0 14px rgba(180,167,245,0.9);
   }
 
   .times { display:flex; justify-content:space-between; font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
@@ -151,7 +151,6 @@
     <input type="range" id="seek" min="0" max="100" step="0.1" value="0" disabled aria-label="Позиция в треке">
     <div class="times"><span id="cur">0:00</span><span id="dur">0:00</span></div>
     <div class="ctrl">
-      <!-- Кнопка режима воспроизведения: По порядку / Цикл / Рандом -->
       <button id="modeBtn" type="button" title="Режим воспроизведения" aria-label="Режим">
         <svg id="modeIcon" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
       </button>
@@ -161,7 +160,6 @@
         <svg class="i2" viewBox="0 0 24 24"><rect x="6" y="5" width="4.5" height="14" rx="1.2"/><rect x="13.5" y="5" width="4.5" height="14" rx="1.2"/></svg>
       </button>
       <button id="next" type="button" disabled aria-label="Следующий"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5.5v13a.8.8 0 0 0 1.25.66l9.25-6.5a.8.8 0 0 0 0-1.32L5.25 4.84A.8.8 0 0 0 4 5.5z"/></svg></button>
-      <!-- Заглушка для баланса кнопок управления -->
       <div style="width:42px;"></div>
     </div>
   </section>
@@ -214,19 +212,17 @@ if (tg) { tg.ready(); tg.expand(); try { tg.setHeaderColor('#0a0a0a'); tg.setBac
 const buzz = () => { try { tg.HapticFeedback.selectionChanged(); } catch (e) {} };
 const $ = id => document.getElementById(id);
 
-/* Режимы воспроизведения: 'list' (по порядку), 'loop' (цикл трека), 'shuffle' (рандом) */
 let playMode = 'list';
 const modeIcons = {
-  list: '<path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>', // повтор плейлиста
-  loop: '<path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>', // цикл одного трека
-  shuffle: '<path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>' // рандом
+  list: '<path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>',
+  loop: '<path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>',
+  shuffle: '<path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>'
 };
 
 $('modeBtn').onclick = () => {
   if (playMode === 'list') { playMode = 'loop'; $('modeBtn').title = 'Цикл трека'; }
   else if (playMode === 'loop') { playMode = 'shuffle'; $('modeBtn').title = 'Случайный порядок'; }
   else { playMode = 'list'; $('modeBtn').title = 'По порядку'; }
-  
   $('modeIcon').innerHTML = modeIcons[playMode];
   $('modeBtn').classList.toggle('active-mode', playMode !== 'list');
   buzz();
@@ -303,14 +299,10 @@ $('file').onchange = e => {
   const list = [...e.target.files].filter(f => f.type.startsWith('audio') || AUDIO_RE.test(f.name));
   e.target.value = ''; 
   if (!list.length) return;
-  
   const firstTimeEmpty = tracks.length === 0;
   tracks.push(...list);
   renderList();
-  
-  if (firstTimeEmpty) {
-    loadTrack(0, false);
-  }
+  if (firstTimeEmpty) loadTrack(0, false);
   $('prev').disabled = $('next').disabled = false;
   buzz();
 };
@@ -345,7 +337,7 @@ function loadTrack(i, autoplay) {
   $('title').textContent = nameOf(tracks[i]);
   $('sub').textContent = `Трек ${i + 1} из ${tracks.length}`;
   $('seek').disabled = $('play').disabled = false;
-  $('seek').value = 0; paint(); $('cur').textContent = '0:00'; $('dur').textContent = '0:00';
+  $('seek').value = 0; paintSeek(); $('cur').textContent = '0:00'; $('dur').textContent = '0:00';
   markCurrent();
   mediaSession(tracks[i]);
   if (autoplay) play();
@@ -356,7 +348,6 @@ async function play() {
   try { await audio.play(); } catch (e) { $('sub').textContent = 'Ошибка воспроизведения'; }
 }
 
-/* Логика переключения треков с учетом режимов */
 function getNextIndex() {
   if (playMode === 'shuffle') {
     if (tracks.length <= 1) return idx;
@@ -393,7 +384,6 @@ audio.onended = () => {
     if (idx < tracks.length - 1) step(1); else { loadTrack(0, true); audio.pause(); setOn(false); }
   }
 };
-
 audio.onerror = () => { $('sub').textContent = 'Формат не поддерживается'; };
 
 function mediaSession(f) {
@@ -407,21 +397,24 @@ function mediaSession(f) {
   } catch (e) {}
 }
 
-/* ===== Таймлайн (исправленный перенос линии и эффект бегунка) ===== */
-const fmt = s => isFinite(s) ? Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') : '0:00';
-const seek = $('seek'); let drag = false;
-
-const paint = () => {
-  const val = seek.value;
-  seek.style.setProperty('--p', val + '%');
+/* ===== Универсальная функция отрисовки прогресса ползунков ===== */
+const paintRange = (el) => {
+  const min = +el.min || 0;
+  const max = +el.max || 100;
+  const val = +el.value;
+  const percent = ((val - min) / (max - min)) * 100;
+  el.style.setProperty('--p', percent + '%');
 };
+
+const seek = $('seek'); let drag = false;
+const paintSeek = () => paintRange(seek);
 
 audio.onloadedmetadata = () => { $('dur').textContent = fmt(audio.duration); applyAudio(); };
 audio.ontimeupdate = () => { 
   if (drag || !audio.duration) return; 
   seek.value = (audio.currentTime / audio.duration) * 100; 
   $('cur').textContent = fmt(audio.currentTime); 
-  paint(); 
+  paintSeek(); 
 };
 
 seek.oninput = () => { 
@@ -429,9 +422,8 @@ seek.oninput = () => {
   if(audio.duration) {
     $('cur').textContent = fmt((seek.value / 100) * audio.duration); 
   }
-  paint(); 
+  paintSeek(); 
 };
-
 seek.onchange = () => { 
   if(audio.duration) {
     audio.currentTime = (seek.value / 100) * audio.duration; 
@@ -439,30 +431,48 @@ seek.onchange = () => {
   drag = false; 
 };
 
+const fmt = s => isFinite(s) ? Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') : '0:00';
+
 /* ===== Скорость / тон / реверберация ===== */
 function syncSpeedUI(activePreset) {
-  $('rate').value = st.rate; $('keep').checked = st.keep; $('rev').value = st.rev;
+  $('rate').value = st.rate; 
+  $('keep').checked = st.keep; 
+  $('rev').value = st.rev;
+  
   $('rateV').textContent = '×' + st.rate.toFixed(2);
   $('revV').textContent = st.rev + '%';
+  
   const semi = 12 * Math.log2(st.rate);
   $('pitchNote').textContent = st.keep ? 'Тон не меняется' : `Тон ${semi >= 0 ? '+' : '−'}${Math.abs(semi).toFixed(1)} полутона`;
-  $('speedChips').querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.p === activePreset));
+  
+  if (activePreset) {
+    $('speedChips').querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.p === activePreset));
+  }
+  
+  // Мгновенно обновляем заполнение полос для слайдеров скорости и реверберации
+  paintRange($('rate'));
+  paintRange($('rev'));
+  
   applyAudio();
 }
 
 $('speedChips').addEventListener('click', e => {
   const c = e.target.closest('.chip'); if (!c) return;
-  Object.assign(st, SPEED[c.dataset.p]); syncSpeedUI(c.dataset.p); buzz();
+  Object.assign(st, SPEED[c.dataset.p]); 
+  syncSpeedUI(c.dataset.p); 
+  buzz();
 });
 
-const paintGeneric = r => r.style.setProperty('--p', ((r.value - r.min) / (r.max - r.min)) * 100 + '%');
-
-$('rate').oninput = e => { st.rate = +e.target.value; syncSpeedUI(null); paintGeneric(e.target); };
+$('rate').oninput = e => { 
+  st.rate = +e.target.value; 
+  syncSpeedUI(null); 
+  // Снимаем подсветку пресетов, если крутим вручную
+  $('speedChips').querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+};
 $('keep').onchange = e => { st.keep = e.target.checked; syncSpeedUI(null); };
-$('rev').oninput = e => { st.rev = +e.target.value; syncSpeedUI(null); paintGeneric(e.target); };
+$('rev').oninput = e => { st.rev = +e.target.value; syncSpeedUI(null); };
 
-syncSpeedUI('original'); 
-['rate', 'rev'].forEach(id => paintGeneric($(id)));
+syncSpeedUI('original');
 
 /* ===== Эквалайзер ===== */
 const sliders = BANDS.map((b, i) => {
@@ -470,8 +480,14 @@ const sliders = BANDS.map((b, i) => {
   d.innerHTML = `<div class="v">0</div><div class="sl"><input type="range" min="-12" max="12" step="1" value="0" aria-label="${b.n}"></div><div>${b.n}</div>`;
   $('bands').append(d);
   const r = d.querySelector('input'), v = d.querySelector('.v');
-  r.oninput = () => { gains[i] = +r.value; setGain(i); v.textContent = (r.value > 0 ? '+' : '') + r.value; setEqChip('custom'); paintGeneric(r); };
-  paintGeneric(r);
+  r.oninput = () => { 
+    gains[i] = +r.value; 
+    setGain(i); 
+    v.textContent = (r.value > 0 ? '+' : '') + r.value; 
+    setEqChip('custom'); 
+    paintRange(r); 
+  };
+  paintRange(r);
   return { r, v };
 });
 function setGain(i) { if (filters[i]) filters[i].gain.setTargetAtTime(gains[i], ctx.currentTime, 0.05); }
@@ -479,7 +495,7 @@ function setEqChip(p) { $('eqChips').querySelectorAll('.chip').forEach(c => c.cl
 $('eqChips').addEventListener('click', e => {
   const c = e.target.closest('.chip'); if (!c) return;
   if (c.dataset.p !== 'custom') EQ[c.dataset.p].forEach((g, i) => {
-    gains[i] = g; sliders[i].r.value = g; sliders[i].v.textContent = (g > 0 ? '+' : '') + g; paintGeneric(sliders[i].r); setGain(i);
+    gains[i] = g; sliders[i].r.value = g; sliders[i].v.textContent = (g > 0 ? '+' : '') + g; paintRange(sliders[i].r); setGain(i);
   });
   setEqChip(c.dataset.p); buzz();
 });
