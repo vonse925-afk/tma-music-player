@@ -4,346 +4,386 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Midnight Vibe</title>
-<!-- SDK Telegram Mini Apps (если не загрузится — приложение всё равно работает в браузере) -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  /* ===== Дизайн-токены «Midnight Vibe» ===== */
+  /* ===== Токены ===== */
   :root {
-    --bg: #0a0a0a;
-    --card: #181818;
-    --card-2: #222222;
-    --line: #2a2a2a;
-    --text: #ececec;
-    --muted: #8a8a8a;
-    --accent: #b4a7f5;        /* мягкий приглушённый сиреневый */
-    --accent-ink: #14112a;
-    --radius: 22px;
+    --bg:#0a0a0a; --card:rgba(24,24,24,.74); --card-2:rgba(255,255,255,.07);
+    --line:rgba(255,255,255,.09); --text:#efefef; --muted:#9a9a9f;
+    --accent:#b4a7f5; --ink:#14112a;
   }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; margin: 0; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; margin:0; background:var(--bg); }
   body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    padding: env(safe-area-inset-top, 0) 16px env(safe-area-inset-bottom, 0);
-    display: flex; flex-direction: column;
-    max-width: 480px; margin: 0 auto;
-    user-select: none; -webkit-user-select: none;
+    color:var(--text); overflow:hidden;
+    font-family:-apple-system,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;
+    user-select:none; -webkit-user-select:none;
   }
+  button { font:inherit; color:inherit; border:0; background:none; cursor:pointer; }
 
-  /* ===== Карточка трека ===== */
-  .track {
-    margin-top: 20px;
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: 28px 22px 24px;
-    text-align: center;
+  /* ===== «Неоновая лужа»: жидкие размытые пятна, медленно перетекающие ===== */
+  .glow { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+  .glow i {
+    position:absolute; width:80vmax; height:80vmax; max-width:620px; max-height:620px;
+    border-radius:42% 58% 63% 37% / 45% 40% 60% 55%;
+    filter:blur(70px); opacity:.5; mix-blend-mode:screen;
+    animation:flow 18s ease-in-out infinite alternate;
   }
-  .cover {
-    width: 168px; height: 168px; margin: 0 auto 22px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 50% 50%, #0a0a0a 0 9%, #1c1c1c 10% 38%, #141414 39% 41%, #1c1c1c 42% 70%, #121212 71%);
-    border: 1px solid var(--line);
-    position: relative;
-    transition: box-shadow .6s;
+  .glow i:nth-child(1){ background:#6f4cff; left:-25%; top:-8%; }
+  .glow i:nth-child(2){ background:#00c9b7; right:-30%; top:28%; animation-duration:23s; animation-delay:-6s; }
+  .glow i:nth-child(3){ background:#ff3f9e; left:-10%; bottom:-22%; animation-duration:27s; animation-delay:-12s; }
+  @keyframes flow {
+    0%  { transform:translate(0,0) rotate(0) scale(1);          border-radius:42% 58% 63% 37% / 45% 40% 60% 55%; }
+    50% { transform:translate(14vw,-8vh) rotate(90deg) scale(1.12); border-radius:60% 40% 38% 62% / 55% 60% 40% 45%; }
+    100%{ transform:translate(-8vw,10vh) rotate(200deg) scale(.95); border-radius:38% 62% 52% 48% / 62% 38% 62% 38%; }
   }
-  .cover::after { /* центральная «метка» диска */
-    content: ""; position: absolute; inset: 38%;
-    border-radius: 50%; background: var(--accent); opacity: .85;
-  }
-  .cover.playing { animation: spin 9s linear infinite; box-shadow: 0 0 40px rgba(180,167,245,.12); }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  @media (prefers-reduced-motion: reduce) { .cover.playing { animation: none; } }
+  .glow::after { content:""; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 40%, transparent 0, rgba(10,10,10,.55) 85%); }
+  @media (prefers-reduced-motion:reduce){ .glow i{ animation:none; } }
 
-  .title { font-size: 19px; font-weight: 650; margin: 0 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sub { font-size: 14px; color: var(--muted); margin: 0; }
+  /* ===== Каркас ===== */
+  .app {
+    position:relative; z-index:1; height:100dvh; max-width:520px; margin:0 auto;
+    padding:calc(env(safe-area-inset-top,0px) + 12px) 14px calc(env(safe-area-inset-bottom,0px) + 10px);
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:22px; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
 
-  /* ===== Выбор файла ===== */
-  .pick {
-    margin-top: 14px; width: 100%;
-    background: var(--card); color: var(--text);
-    border: 1px dashed #3a3a3a; border-radius: 16px;
-    padding: 15px; font-size: 16px; font-weight: 550; cursor: pointer;
+  /* ===== Плеер ===== */
+  .now { padding:16px 16px 10px; }
+  .row { display:flex; align-items:center; gap:12px; }
+  .disc {
+    flex:none; width:58px; height:58px; border-radius:50%; border:1px solid var(--line);
+    background:radial-gradient(circle,var(--accent) 0 11%,#0a0a0a 12% 14%,#1d1d1d 15% 60%,#111 61%);
   }
-  .pick:active { background: var(--card-2); }
-  #file { display: none; }
+  .disc.on { animation:spin 7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .meta { min-width:0; flex:1; }
+  .title { font-size:17px; font-weight:650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sub { font-size:13px; color:var(--muted); margin-top:2px; }
+  .pick { flex:none; background:var(--card-2); border:1px solid var(--line); border-radius:14px; padding:10px 14px; font-size:14px; font-weight:600; }
+  .pick:active { opacity:.6; }
+  #file { display:none; }
 
-  /* ===== Переключатель версий (главная фишка) ===== */
-  .modes {
-    position: relative; margin-top: 14px;
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    background: var(--card); border: 1px solid var(--line);
-    border-radius: 999px; padding: 5px;
-  }
-  .modes .pill { /* скользящая подсветка активной капсулы */
-    position: absolute; top: 5px; bottom: 5px; left: 5px;
-    width: calc((100% - 10px) / 3);
-    background: var(--accent); border-radius: 999px;
-    transition: transform .28s cubic-bezier(.3,.9,.3,1);
-  }
-  .modes button {
-    position: relative; z-index: 1;
-    background: none; border: 0; color: var(--muted);
-    font: inherit; font-size: 15px; font-weight: 600;
-    padding: 13px 0; border-radius: 999px; cursor: pointer;
-    transition: color .2s;
-  }
-  .modes button.active { color: var(--accent-ink); }
-  .hint { text-align: center; color: var(--muted); font-size: 13px; margin: 10px 0 0; min-height: 18px; }
+  input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:26px; margin:0; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:4px; border-radius:4px; background:linear-gradient(to right,var(--accent) var(--p,0%),rgba(255,255,255,.14) var(--p,0%)); }
+  input[type=range]::-moz-range-track { height:4px; border-radius:4px; background:rgba(255,255,255,.14); }
+  input[type=range]::-moz-range-progress { height:4px; border-radius:4px; background:var(--accent); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; margin-top:-7px; border-radius:50%; background:var(--text); border:0; }
+  input[type=range]::-moz-range-thumb { width:18px; height:18px; border-radius:50%; background:var(--text); border:0; }
+  .times { display:flex; justify-content:space-between; font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
 
-  /* ===== Таймлайн ===== */
-  .timeline { margin-top: 18px; }
-  input[type=range] {
-    -webkit-appearance: none; appearance: none; width: 100%; height: 28px;
-    background: transparent; margin: 0; cursor: pointer;
-  }
-  input[type=range]::-webkit-slider-runnable-track {
-    height: 4px; border-radius: 4px;
-    background: linear-gradient(to right, var(--accent) var(--p, 0%), #2c2c2c var(--p, 0%));
-  }
-  input[type=range]::-moz-range-track { height: 4px; border-radius: 4px; background: #2c2c2c; }
-  input[type=range]::-moz-range-progress { height: 4px; border-radius: 4px; background: var(--accent); }
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 16px; height: 16px; margin-top: -6px;
-    border-radius: 50%; background: var(--text); border: 0;
-  }
-  input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--text); border: 0; }
-  .times { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .ctrl { display:flex; justify-content:center; align-items:center; gap:26px; padding:6px 0 4px; }
+  .ctrl button { width:46px; height:46px; border-radius:50%; display:grid; place-items:center; }
+  .ctrl button:active { background:var(--card-2); }
+  .ctrl svg { width:24px; height:24px; fill:currentColor; }
+  .ctrl .play { width:64px; height:64px; background:var(--text); color:#0a0a0a; }
+  .ctrl .play:active { background:var(--text); transform:scale(.94); }
+  .play .i2, .play.on .i1 { display:none; } .play.on .i2 { display:block; }
+  button:disabled { opacity:.3; }
 
-  /* ===== Кнопка Play / Pause ===== */
-  .controls { display: flex; justify-content: center; margin: 20px 0 24px; }
-  .play {
-    width: 76px; height: 76px; border-radius: 50%; border: 0;
-    background: var(--text); color: #0a0a0a; cursor: pointer;
-    display: grid; place-items: center;
-    transition: transform .12s, opacity .2s;
-  }
-  .play:active { transform: scale(.94); }
-  .play:disabled { opacity: .25; cursor: default; }
-  .play svg { width: 30px; height: 30px; fill: currentColor; }
-  .play .i-pause { display: none; }
-  .play.on .i-play { display: none; }
-  .play.on .i-pause { display: block; }
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  /* ===== Вкладки ===== */
+  .tabs { display:grid; grid-template-columns:repeat(3,1fr); padding:4px; border-radius:999px; position:relative; }
+  .tabs .ind { position:absolute; top:4px; bottom:4px; left:4px; width:calc((100% - 8px)/3); background:var(--accent); border-radius:999px; transition:transform .28s cubic-bezier(.3,.9,.3,1); }
+  .tabs button { position:relative; z-index:1; padding:11px 0; font-size:14px; font-weight:600; color:var(--muted); border-radius:999px; transition:color .2s; }
+  .tabs button.on { color:var(--ink); }
+
+  .panel { flex:1; min-height:0; overflow-y:auto; padding:14px; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+  .panel[hidden] { display:none; }
+
+  /* ===== Плейлист ===== */
+  .empty { text-align:center; color:var(--muted); font-size:14px; padding:28px 10px; line-height:1.5; }
+  .pl { list-style:none; margin:0; padding:0; }
+  .pl li { display:flex; align-items:center; gap:10px; padding:12px 10px; border-radius:14px; font-size:15px; cursor:pointer; }
+  .pl li:active { background:var(--card-2); }
+  .pl li span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pl li::before { content:""; flex:none; width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.18); }
+  .pl li.cur { background:rgba(180,167,245,.13); color:var(--accent); font-weight:600; }
+  .pl li.cur::before { background:var(--accent); box-shadow:0 0 10px var(--accent); }
+
+  /* ===== Скорость / эквалайзер ===== */
+  .chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .chip { flex:1; padding:11px 6px; border-radius:999px; background:var(--card-2); border:1px solid var(--line); font-size:14px; font-weight:600; text-align:center; white-space:nowrap; }
+  .chip.on { background:var(--accent); color:var(--ink); border-color:transparent; }
+  .lbl { display:flex; justify-content:space-between; font-size:14px; margin-top:6px; }
+  .lbl b { color:var(--accent); font-weight:600; font-variant-numeric:tabular-nums; }
+  .note { font-size:12px; color:var(--muted); margin:2px 0 10px; min-height:16px; }
+  .sw { display:flex; justify-content:space-between; align-items:center; padding:10px 0; font-size:14px; }
+  .sw input { width:46px; height:28px; appearance:none; -webkit-appearance:none; border-radius:999px; background:rgba(255,255,255,.16); position:relative; transition:background .2s; margin:0; }
+  .sw input::after { content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; transition:transform .2s; }
+  .sw input:checked { background:var(--accent); } .sw input:checked::after { transform:translateX(18px); background:var(--ink); }
+
+  .bands { display:flex; justify-content:space-between; margin-top:4px; }
+  .band { width:19%; text-align:center; font-size:12px; color:var(--muted); }
+  .band .v { color:var(--text); font-variant-numeric:tabular-nums; height:16px; }
+  .band .sl { position:relative; height:150px; }
+  .band input { position:absolute; width:140px; left:50%; top:50%; transform:translate(-50%,-50%) rotate(-90deg); }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 </style>
 </head>
 <body>
+<div class="glow" aria-hidden="true"><i></i><i></i><i></i></div>
 
-  <!-- Карточка с названием трека -->
-  <section class="track">
-    <div class="cover" id="cover"></div>
-    <h1 class="title" id="title">Трек не выбран</h1>
-    <p class="sub" id="sub">Выберите файл из памяти телефона</p>
-  </section>
+<main class="app">
 
-  <!-- Выбор локального файла (никуда не загружается) -->
-  <button class="pick" id="pickBtn" type="button">Выбрать музыку</button>
-  <input type="file" id="file" accept="audio/*">
-
-  <!-- Переключатель версий -->
-  <div class="modes" id="modes" role="tablist" aria-label="Версия трека">
-    <div class="pill" id="pill"></div>
-    <button type="button" data-mode="original" class="active">Original</button>
-    <button type="button" data-mode="speed">Speed Up</button>
-    <button type="button" data-mode="slowed">Slowed</button>
-  </div>
-  <p class="hint" id="hint">Оригинальная скорость и тон</p>
-
-  <!-- Таймлайн -->
-  <div class="timeline">
+  <!-- Плеер -->
+  <section class="card now">
+    <div class="row">
+      <div class="disc" id="disc"></div>
+      <div class="meta">
+        <div class="title" id="title">Трек не выбран</div>
+        <div class="sub" id="sub">Добавьте музыку из памяти телефона</div>
+      </div>
+      <button class="pick" id="pickBtn" type="button">+ Музыка</button>
+      <!-- multiple — можно выбрать сразу много файлов -->
+      <input type="file" id="file" accept="audio/*" multiple>
+    </div>
     <input type="range" id="seek" min="0" max="100" step="0.1" value="0" disabled aria-label="Позиция в треке">
     <div class="times"><span id="cur">0:00</span><span id="dur">0:00</span></div>
-  </div>
+    <div class="ctrl">
+      <button id="prev" type="button" disabled aria-label="Предыдущий"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5.5v13a.8.8 0 0 1-1.25.66L9.5 12.66a.8.8 0 0 1 0-1.32l9.25-6.5A.8.8 0 0 1 20 5.5z"/></svg></button>
+      <button class="play" id="play" type="button" disabled aria-label="Играть / пауза">
+        <svg class="i1" viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
+        <svg class="i2" viewBox="0 0 24 24"><rect x="6" y="5" width="4.5" height="14" rx="1.2"/><rect x="13.5" y="5" width="4.5" height="14" rx="1.2"/></svg>
+      </button>
+      <button id="next" type="button" disabled aria-label="Следующий"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5.5v13a.8.8 0 0 0 1.25.66l9.25-6.5a.8.8 0 0 0 0-1.32L5.25 4.84A.8.8 0 0 0 4 5.5z"/></svg></button>
+    </div>
+  </section>
 
-  <!-- Play / Pause -->
-  <div class="controls">
-    <button class="play" id="play" type="button" disabled aria-label="Играть / пауза">
-      <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
-      <svg class="i-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4.5" height="14" rx="1.2"/><rect x="13.5" y="5" width="4.5" height="14" rx="1.2"/></svg>
-    </button>
-  </div>
+  <!-- Вкладки -->
+  <nav class="card tabs" id="tabs">
+    <div class="ind" id="ind"></div>
+    <button type="button" data-tab="list" class="on">Плейлист</button>
+    <button type="button" data-tab="speed">Скорость</button>
+    <button type="button" data-tab="eq">Эквалайзер</button>
+  </nav>
+
+  <!-- Плейлист -->
+  <section class="card panel" id="p-list">
+    <div class="empty" id="empty">Плейлист пуст.<br>Нажмите «+ Музыка» и выберите сразу несколько файлов.</div>
+    <ul class="pl" id="pl"></ul>
+  </section>
+
+  <!-- Скорость и тон -->
+  <section class="card panel" id="p-speed" hidden>
+    <div class="chips" id="speedChips">
+      <button class="chip on" type="button" data-p="original">Original</button>
+      <button class="chip" type="button" data-p="speed">Speed Up</button>
+      <button class="chip" type="button" data-p="slowed">Slowed</button>
+    </div>
+    <div class="lbl"><span>Скорость</span><b id="rateV">×1.00</b></div>
+    <input type="range" id="rate" min="0.5" max="2" step="0.01" value="1" aria-label="Скорость">
+    <div class="note" id="pitchNote"></div>
+    <div class="sw"><span>Сохранять тон при смене скорости</span><input type="checkbox" id="keep" checked></div>
+    <div class="lbl"><span>Реверберация</span><b id="revV">0%</b></div>
+    <input type="range" id="rev" min="0" max="100" step="1" value="0" aria-label="Реверберация">
+  </section>
+
+  <!-- Эквалайзер -->
+  <section class="card panel" id="p-eq" hidden>
+    <div class="chips" id="eqChips">
+      <button class="chip on" type="button" data-p="default">Default</button>
+      <button class="chip" type="button" data-p="bass">Bass Boost</button>
+      <button class="chip" type="button" data-p="treble">Treble</button>
+      <button class="chip" type="button" data-p="custom">Custom</button>
+    </div>
+    <div class="bands" id="bands"></div>
+  </section>
+</main>
 
 <script>
-/* ============================================================
-   Инициализация Telegram Mini App (безопасно вне Telegram)
-   ============================================================ */
+/* ===== Telegram Mini App ===== */
 const tg = window.Telegram && window.Telegram.WebApp;
-if (tg) {
-  tg.ready();
-  tg.expand();
-  try { tg.setHeaderColor('#0a0a0a'); tg.setBackgroundColor('#0a0a0a'); } catch (e) {}
-}
-
-/* ============================================================
-   Настройки версий трека
-   rate  — скорость воспроизведения (playbackRate)
-   keepPitch — true: высота звука сохраняется (коррекция тона),
-               false: тон меняется вместе со скоростью (классический slowed)
-   wet   — доля реверберации (0 — без эффекта)
-   ============================================================ */
-const MODES = {
-  original: { rate: 1.0,  keepPitch: true,  wet: 0,    hint: 'Оригинальная скорость и тон' },
-  speed:    { rate: 1.3,  keepPitch: true,  wet: 0,    hint: 'Скорость ×1.3, тон сохранён' },
-  slowed:   { rate: 0.85, keepPitch: false, wet: 0.45, hint: 'Скорость ×0.85, тон ниже, реверберация' }
-};
-
-/* ===== Элементы интерфейса ===== */
+if (tg) { tg.ready(); tg.expand(); try { tg.setHeaderColor('#0a0a0a'); tg.setBackgroundColor('#0a0a0a'); } catch (e) {} }
+const buzz = () => { try { tg.HapticFeedback.selectionChanged(); } catch (e) {} };
 const $ = id => document.getElementById(id);
-const audio = new Audio();           // сам плеер (HTMLMediaElement)
+
+/* ===== Настройки пресетов ===== */
+// Пресеты скорости: значения можно менять, а ползунок позволяет выставить любое своё
+const SPEED = {
+  original: { rate: 1.0,  keep: true,  rev: 0 },
+  speed:    { rate: 1.3,  keep: true,  rev: 0 },
+  slowed:   { rate: 0.85, keep: false, rev: 45 }
+};
+// Эквалайзер: 5 полос (Гц), усиление в дБ
+const BANDS = [
+  { f: 60,    t: 'lowshelf',  n: '60 Гц' },
+  { f: 230,   t: 'peaking',   n: '230 Гц' },
+  { f: 910,   t: 'peaking',   n: '910 Гц' },
+  { f: 3600,  t: 'peaking',   n: '3.6 кГц' },
+  { f: 14000, t: 'highshelf', n: '14 кГц' }
+];
+const EQ = { default: [0,0,0,0,0], bass: [9,5,0,-1,0], treble: [0,0,0,5,9] };
+
+const st = { rate: 1, keep: true, rev: 0 };   // текущие настройки звука
+const gains = [0,0,0,0,0];                     // текущие дБ эквалайзера
+
+/* ===== Аудио-движок =====
+   audio → EQ (5 фильтров) ─┬─ dry ───────────┐
+                            └─ reverb → wet ──┴→ master → выход           */
+const audio = new Audio();
 audio.preload = 'auto';
-audio.crossOrigin = 'anonymous';
-const fileInput = $('file'), playBtn = $('play'), seek = $('seek');
-const curEl = $('cur'), durEl = $('dur'), cover = $('cover');
-const modesEl = $('modes'), pill = $('pill'), hintEl = $('hint');
+let ctx, filters = [], dry, wet, conv;
 
-/* ============================================================
-   Аудио-движок (Web Audio API)
-   Цепочка:  audio → MediaElementSource ─┬─ dry ────────────┐
-                                         └─ convolver → wet ┴→ master → выход
-   Создаётся лениво — по первому нажатию (требование iOS/Android).
-   ============================================================ */
-let ctx, dryGain, wetGain, convolver, masterGain;
-
-/** Генерирует импульсный отклик «комнаты»: затухающий стерео-шум */
-function makeImpulse(context, seconds = 2.8, decay = 2.6) {
-  const rate = context.sampleRate, len = Math.floor(rate * seconds);
-  const buf = context.createBuffer(2, len, rate);
-  for (let ch = 0; ch < 2; ch++) {
-    const data = buf.getChannelData(ch);
-    for (let i = 0; i < len; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
-    }
-  }
-  return buf;
+function impulse(c, sec = 2.8, decay = 2.6) {
+  const n = Math.floor(c.sampleRate * sec), b = c.createBuffer(2, n, c.sampleRate);
+  for (let ch = 0; ch < 2; ch++) { const d = b.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/n, decay); }
+  return b;
 }
-
 function initAudio() {
   if (ctx) return;
-  const AC = window.AudioContext || window.webkitAudioContext;
-  ctx = new AC();
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
   const src = ctx.createMediaElementSource(audio);
-
-  dryGain = ctx.createGain();
-  wetGain = ctx.createGain();   wetGain.gain.value = 0;
-  masterGain = ctx.createGain(); masterGain.gain.value = 0.9;
-  convolver = ctx.createConvolver();
-  convolver.buffer = makeImpulse(ctx);
-
-  src.connect(dryGain);                       // сухой сигнал
-  src.connect(convolver);                     // сигнал в реверберацию
-  convolver.connect(wetGain);                 // обработанный сигнал
-  dryGain.connect(masterGain);
-  wetGain.connect(masterGain);
-  masterGain.connect(ctx.destination);
+  filters = BANDS.map((b, i) => { const f = ctx.createBiquadFilter(); f.type = b.t; f.frequency.value = b.f; if (b.t === 'peaking') f.Q.value = 1; f.gain.value = gains[i]; return f; });
+  src.connect(filters[0]);
+  filters.reduce((a, b) => (a.connect(b), b));
+  dry = ctx.createGain(); wet = ctx.createGain(); conv = ctx.createConvolver(); conv.buffer = impulse(ctx);
+  const master = ctx.createGain(); master.gain.value = 0.9;
+  const last = filters[filters.length - 1];
+  last.connect(dry); last.connect(conv); conv.connect(wet); dry.connect(master); wet.connect(master); master.connect(ctx.destination);
+  applyAudio();
 }
-
-/** Включает версию трека: скорость, режим тона и реверберацию — мгновенно */
-function applyMode(name) {
-  const m = MODES[name];
-  // preservesPitch: true — тон не меняется; false — тон «плывёт» вместе со скоростью
-  audio.preservesPitch = m.keepPitch;
-  audio.mozPreservesPitch = m.keepPitch;
-  audio.webkitPreservesPitch = m.keepPitch;
-  audio.playbackRate = m.rate;
-
-  if (ctx) {   // плавная смена реверберации без щелчков
-    const t = ctx.currentTime;
-    wetGain.gain.setTargetAtTime(m.wet, t, 0.15);
-    dryGain.gain.setTargetAtTime(1 - m.wet * 0.35, t, 0.15);
+/** Применяет скорость, режим тона и реверберацию */
+function applyAudio() {
+  audio.defaultPlaybackRate = st.rate;   // чтобы скорость не сбрасывалась при смене трека
+  audio.playbackRate = st.rate;
+  audio.preservesPitch = audio.mozPreservesPitch = audio.webkitPreservesPitch = st.keep;
+  if (ctx) {
+    const w = st.rev / 100, t = ctx.currentTime;
+    wet.gain.setTargetAtTime(w, t, 0.12);
+    dry.gain.setTargetAtTime(1 - w * 0.35, t, 0.12);
   }
-  // интерфейс
-  const idx = Object.keys(MODES).indexOf(name);
-  pill.style.transform = `translateX(${idx * 100}%)`;
-  modesEl.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.mode === name));
-  hintEl.textContent = m.hint;
-  currentMode = name;
 }
-let currentMode = 'original';
 
-/* ============================================================
-   Выбор файла (всё локально, через blob-URL)
-   ============================================================ */
-$('pickBtn').addEventListener('click', () => fileInput.click());
-
-fileInput.addEventListener('change', () => {
-  const f = fileInput.files[0];
-  if (!f) return;
-  if (audio.src) URL.revokeObjectURL(audio.src);   // освобождаем память
-  audio.src = URL.createObjectURL(f);
-  audio.load();
-  applyMode(currentMode);                          // load() сбрасывает скорость — возвращаем
-  $('title').textContent = f.name.replace(/\.[^.]+$/, '');
-  $('sub').textContent = (f.size / 1048576).toFixed(1) + ' МБ · локальный файл';
-  playBtn.disabled = false;
-  seek.disabled = false;
-  setPlaying(false);
+/* ===== Вкладки ===== */
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('button[data-tab]'); if (!b) return;
+  const ids = ['list', 'speed', 'eq'];
+  ids.forEach(id => $('p-' + id).hidden = id !== b.dataset.tab);
+  $('tabs').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  $('ind').style.transform = `translateX(${ids.indexOf(b.dataset.tab) * 100}%)`;
+  buzz();
 });
 
-/* ============================================================
-   Управление: Play / Pause
-   ============================================================ */
-function setPlaying(on) {
-  playBtn.classList.toggle('on', on);
-  cover.classList.toggle('playing', on);
-}
+/* ===== Плейлист ===== */
+let tracks = [], idx = -1;
+const AUDIO_RE = /\.(mp3|wav|m4a|aac|ogg|oga|flac|opus|weba|wma)$/i;
+const nameOf = f => f.name.replace(/\.[^.]+$/, '');
 
-playBtn.addEventListener('click', async () => {
+$('pickBtn').onclick = () => $('file').click();
+$('file').onchange = e => {
+  const list = [...e.target.files].filter(f => f.type.startsWith('audio') || AUDIO_RE.test(f.name));
+  e.target.value = '';                                // можно выбрать те же файлы снова
+  if (!list.length) return;
+  const first = tracks.length;
+  tracks.push(...list);
+  renderList();
+  if (idx < 0) loadTrack(first, false);
+  $('prev').disabled = $('next').disabled = false;
+};
+function renderList() {
+  const ul = $('pl'), frag = document.createDocumentFragment();
+  tracks.forEach((f, i) => { const li = document.createElement('li'); li.dataset.i = i; const s = document.createElement('span'); s.textContent = nameOf(f); li.append(s); frag.append(li); });
+  ul.replaceChildren(frag);
+  $('empty').hidden = tracks.length > 0;
+  markCurrent();
+}
+function markCurrent() {
+  [...$('pl').children].forEach((li, i) => li.classList.toggle('cur', i === idx));
+  const el = $('pl').children[idx]; if (el) el.scrollIntoView({ block: 'nearest' });
+}
+$('pl').addEventListener('click', e => { const li = e.target.closest('li'); if (li) { loadTrack(+li.dataset.i, true); buzz(); } });
+
+let url = '';
+function loadTrack(i, autoplay) {
+  idx = i;
+  if (url) URL.revokeObjectURL(url);                  // освобождаем память
+  url = URL.createObjectURL(tracks[i]);               // blob создаётся только для играющего трека
+  audio.src = url;
+  applyAudio();
+  $('title').textContent = nameOf(tracks[i]);
+  $('sub').textContent = `Трек ${i + 1} из ${tracks.length}`;
+  $('seek').disabled = $('play').disabled = false;
+  $('seek').value = 0; paint(); $('cur').textContent = '0:00'; $('dur').textContent = '0:00';
+  markCurrent();
+  mediaSession(tracks[i]);
+  if (autoplay) play();
+}
+async function play() {
   initAudio();
   if (ctx.state === 'suspended') await ctx.resume();
-  applyMode(currentMode);
-  if (audio.paused) {
-    try { await audio.play(); } catch (e) { $('sub').textContent = 'Не удалось воспроизвести файл'; }
-  } else {
-    audio.pause();
-  }
-});
-audio.addEventListener('play',  () => setPlaying(true));
-audio.addEventListener('pause', () => setPlaying(false));
-audio.addEventListener('ended', () => setPlaying(false));
-audio.addEventListener('error', () => { $('sub').textContent = 'Формат не поддерживается устройством'; });
-
-/* ============================================================
-   Переключатель версий
-   ============================================================ */
-modesEl.addEventListener('click', e => {
-  const b = e.target.closest('button[data-mode]');
-  if (!b) return;
-  applyMode(b.dataset.mode);
-  if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();  // лёгкая вибрация в Telegram
-});
-
-/* ============================================================
-   Таймлайн и время
-   ============================================================ */
-const fmt = s => {
-  if (!isFinite(s)) return '0:00';
-  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
-  return m + ':' + String(sec).padStart(2, '0');
-};
-let dragging = false;
-
-function paintSeek() {
-  seek.style.setProperty('--p', seek.value + '%');   // заливка дорожки в WebKit
+  try { await audio.play(); } catch (e) { $('sub').textContent = 'Не удалось воспроизвести этот файл'; }
 }
-audio.addEventListener('loadedmetadata', () => { durEl.textContent = fmt(audio.duration); });
-audio.addEventListener('timeupdate', () => {
-  if (dragging || !audio.duration) return;
-  seek.value = (audio.currentTime / audio.duration) * 100;
-  curEl.textContent = fmt(audio.currentTime);
-  paintSeek();
-});
-seek.addEventListener('input', () => {
-  dragging = true;
-  curEl.textContent = fmt((seek.value / 100) * audio.duration);
-  paintSeek();
-});
-seek.addEventListener('change', () => {
-  audio.currentTime = (seek.value / 100) * audio.duration;
-  dragging = false;
-});
+const step = d => { if (!tracks.length) return; loadTrack((idx + d + tracks.length) % tracks.length, true); };
+$('prev').onclick = () => step(-1);
+$('next').onclick = () => step(1);
+$('play').onclick = () => audio.paused ? play() : audio.pause();
+function setOn(on) { $('play').classList.toggle('on', on); $('disc').classList.toggle('on', on); }
+audio.onplay = () => setOn(true);
+audio.onpause = () => setOn(false);
+audio.onended = () => { if (idx < tracks.length - 1) step(1); else setOn(false); };   // автопереход
+audio.onerror = () => { $('sub').textContent = 'Формат не поддерживается устройством'; };
 
-applyMode('original');   // стартовое состояние интерфейса
+/* Управление с экрана блокировки / из шторки */
+function mediaSession(f) {
+  if (!('mediaSession' in navigator)) return;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({ title: nameOf(f), artist: 'Midnight Vibe' });
+    navigator.mediaSession.setActionHandler('play', play);
+    navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+    navigator.mediaSession.setActionHandler('previoustrack', () => step(-1));
+    navigator.mediaSession.setActionHandler('nexttrack', () => step(1));
+  } catch (e) {}
+}
+
+/* ===== Таймлайн ===== */
+const fmt = s => isFinite(s) ? Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') : '0:00';
+const seek = $('seek'); let drag = false;
+const paint = () => seek.style.setProperty('--p', seek.value + '%');
+audio.onloadedmetadata = () => { $('dur').textContent = fmt(audio.duration); applyAudio(); };
+audio.ontimeupdate = () => { if (drag || !audio.duration) return; seek.value = audio.currentTime / audio.duration * 100; $('cur').textContent = fmt(audio.currentTime); paint(); };
+seek.oninput = () => { drag = true; $('cur').textContent = fmt(seek.value / 100 * audio.duration); paint(); };
+seek.onchange = () => { audio.currentTime = seek.value / 100 * audio.duration; drag = false; };
+
+/* ===== Скорость / тон / реверберация ===== */
+function syncSpeedUI(activePreset) {
+  $('rate').value = st.rate; $('keep').checked = st.keep; $('rev').value = st.rev;
+  $('rateV').textContent = '×' + st.rate.toFixed(2);
+  $('revV').textContent = st.rev + '%';
+  const semi = 12 * Math.log2(st.rate);
+  $('pitchNote').textContent = st.keep ? 'Тон не меняется' : `Тон ${semi >= 0 ? '+' : '−'}${Math.abs(semi).toFixed(1)} полутона`;
+  $('speedChips').querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.p === activePreset));
+  applyAudio();
+}
+$('speedChips').addEventListener('click', e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  Object.assign(st, SPEED[c.dataset.p]); syncSpeedUI(c.dataset.p); buzz();
+});
+$('rate').oninput = e => { st.rate = +e.target.value; syncSpeedUI(null); };   // ручная настройка — пресет снимается
+$('keep').onchange = e => { st.keep = e.target.checked; syncSpeedUI(null); };
+$('rev').oninput = e => { st.rev = +e.target.value; syncSpeedUI(null); };
+const paintGeneric = r => r.style.setProperty('--p', (r.value - r.min) / (r.max - r.min) * 100 + '%');
+['rate', 'rev'].forEach(id => $(id).addEventListener('input', () => paintGeneric($(id))));
+syncSpeedUI('original'); ['rate', 'rev'].forEach(id => paintGeneric($(id)));
+
+/* ===== Эквалайзер ===== */
+const sliders = BANDS.map((b, i) => {
+  const d = document.createElement('div'); d.className = 'band';
+  d.innerHTML = `<div class="v">0</div><div class="sl"><input type="range" min="-12" max="12" step="1" value="0" aria-label="${b.n}"></div><div>${b.n}</div>`;
+  $('bands').append(d);
+  const r = d.querySelector('input'), v = d.querySelector('.v');
+  r.oninput = () => { gains[i] = +r.value; setGain(i); v.textContent = (r.value > 0 ? '+' : '') + r.value; setEqChip('custom'); paintGeneric(r); };
+  paintGeneric(r);
+  return { r, v };
+});
+function setGain(i) { if (filters[i]) filters[i].gain.setTargetAtTime(gains[i], ctx.currentTime, 0.05); }
+function setEqChip(p) { $('eqChips').querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.p === p)); }
+$('eqChips').addEventListener('click', e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  if (c.dataset.p !== 'custom') EQ[c.dataset.p].forEach((g, i) => {
+    gains[i] = g; sliders[i].r.value = g; sliders[i].v.textContent = (g > 0 ? '+' : '') + g; paintGeneric(sliders[i].r); setGain(i);
+  });
+  setEqChip(c.dataset.p); buzz();
+});
 </script>
 </body>
 </html>
