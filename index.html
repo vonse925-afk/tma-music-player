@@ -21,7 +21,7 @@
   }
   button { font:inherit; color:inherit; border:0; background:none; cursor:pointer; }
 
-  /* ===== Оптимизированная плавная «неоновая лужа» без лагов ===== */
+  /* ===== Плавная «неоновая лужа» без лагов ===== */
   .glow { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; transform:translateZ(0); }
   .glow i {
     position:absolute; width:60vw; height:60vw; max-width:450px; max-height:450px;
@@ -64,19 +64,31 @@
   .pick:active { opacity:.6; }
   #file { display:none; }
 
+  /* Ползунки с эффектом искр/свечения */
   input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:26px; margin:0; background:transparent; cursor:pointer; }
   input[type=range]::-webkit-slider-runnable-track { height:4px; border-radius:4px; background:linear-gradient(to right,var(--accent) var(--p,0%),rgba(255,255,255,.14) var(--p,0%)); }
   input[type=range]::-moz-range-track { height:4px; border-radius:4px; background:rgba(255,255,255,.14); }
   input[type=range]::-moz-range-progress { height:4px; border-radius:4px; background:var(--accent); }
-  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; margin-top:-7px; border-radius:50%; background:var(--text); border:0; }
-  input[type=range]::-moz-range-thumb { width:18px; height:18px; border-radius:50%; background:var(--text); border:0; }
+  
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance:none; width:18px; height:18px; margin-top:-7px; border-radius:50%; background:var(--text); border:0;
+    box-shadow: 0 0 8px var(--accent), 0 0 12px rgba(180,167,245,0.8);
+    transition: transform 0.1s;
+  }
+  input[type=range]::-webkit-slider-thumb:active { transform: scale(1.25); }
+  input[type=range]::-moz-range-thumb {
+    width:18px; height:18px; border-radius:50%; background:var(--text); border:0;
+    box-shadow: 0 0 8px var(--accent), 0 0 12px rgba(180,167,245,0.8);
+  }
+
   .times { display:flex; justify-content:space-between; font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
 
-  .ctrl { display:flex; justify-content:center; align-items:center; gap:26px; padding:6px 0 4px; }
-  .ctrl button { width:46px; height:46px; border-radius:50%; display:grid; place-items:center; }
+  .ctrl { display:flex; justify-content:space-between; align-items:center; padding:6px 0 4px; }
+  .ctrl button { width:42px; height:42px; border-radius:50%; display:grid; place-items:center; color:var(--muted); }
+  .ctrl button.active-mode { color:var(--accent); text-shadow:0 0 8px var(--accent); }
   .ctrl button:active { background:var(--card-2); }
-  .ctrl svg { width:24px; height:24px; fill:currentColor; }
-  .ctrl .play { width:64px; height:64px; background:var(--text); color:#0a0a0a; }
+  .ctrl svg { width:22px; height:22px; fill:currentColor; }
+  .ctrl .play { width:60px; height:60px; background:var(--text); color:#0a0a0a; border-radius:50%; }
   .ctrl .play:active { background:var(--text); transform:scale(.94); }
   .play .i2, .play.on .i1 { display:none; } .play.on .i2 { display:block; }
   button:disabled { opacity:.3; }
@@ -139,12 +151,18 @@
     <input type="range" id="seek" min="0" max="100" step="0.1" value="0" disabled aria-label="Позиция в треке">
     <div class="times"><span id="cur">0:00</span><span id="dur">0:00</span></div>
     <div class="ctrl">
+      <!-- Кнопка режима воспроизведения: По порядку / Цикл / Рандом -->
+      <button id="modeBtn" type="button" title="Режим воспроизведения" aria-label="Режим">
+        <svg id="modeIcon" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+      </button>
       <button id="prev" type="button" disabled aria-label="Предыдущий"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5.5v13a.8.8 0 0 1-1.25.66L9.5 12.66a.8.8 0 0 1 0-1.32l9.25-6.5A.8.8 0 0 1 20 5.5z"/></svg></button>
       <button class="play" id="play" type="button" disabled aria-label="Играть / пауза">
         <svg class="i1" viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
         <svg class="i2" viewBox="0 0 24 24"><rect x="6" y="5" width="4.5" height="14" rx="1.2"/><rect x="13.5" y="5" width="4.5" height="14" rx="1.2"/></svg>
       </button>
       <button id="next" type="button" disabled aria-label="Следующий"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5.5v13a.8.8 0 0 0 1.25.66l9.25-6.5a.8.8 0 0 0 0-1.32L5.25 4.84A.8.8 0 0 0 4 5.5z"/></svg></button>
+      <!-- Заглушка для баланса кнопок управления -->
+      <div style="width:42px;"></div>
     </div>
   </section>
 
@@ -195,6 +213,24 @@ const tg = window.Telegram && window.Telegram.WebApp;
 if (tg) { tg.ready(); tg.expand(); try { tg.setHeaderColor('#0a0a0a'); tg.setBackgroundColor('#0a0a0a'); } catch (e) {} }
 const buzz = () => { try { tg.HapticFeedback.selectionChanged(); } catch (e) {} };
 const $ = id => document.getElementById(id);
+
+/* Режимы воспроизведения: 'list' (по порядку), 'loop' (цикл трека), 'shuffle' (рандом) */
+let playMode = 'list';
+const modeIcons = {
+  list: '<path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>', // повтор плейлиста
+  loop: '<path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>', // цикл одного трека
+  shuffle: '<path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>' // рандом
+};
+
+$('modeBtn').onclick = () => {
+  if (playMode === 'list') { playMode = 'loop'; $('modeBtn').title = 'Цикл трека'; }
+  else if (playMode === 'loop') { playMode = 'shuffle'; $('modeBtn').title = 'Случайный порядок'; }
+  else { playMode = 'list'; $('modeBtn').title = 'По порядку'; }
+  
+  $('modeIcon').innerHTML = modeIcons[playMode];
+  $('modeBtn').classList.toggle('active-mode', playMode !== 'list');
+  buzz();
+};
 
 /* ===== Настройки пресетов ===== */
 const SPEED = {
@@ -257,7 +293,7 @@ $('tabs').addEventListener('click', e => {
   buzz();
 });
 
-/* ===== Плейлист (Исправленный множественный выбор пачкой) ===== */
+/* ===== Плейлист ===== */
 let tracks = [], idx = -1;
 const AUDIO_RE = /\.(mp3|wav|m4a|aac|ogg|oga|flac|opus|weba|wma)$/i;
 const nameOf = f => f.name.replace(/\.[^.]+$/, '');
@@ -319,14 +355,45 @@ async function play() {
   if (ctx.state === 'suspended') await ctx.resume();
   try { await audio.play(); } catch (e) { $('sub').textContent = 'Ошибка воспроизведения'; }
 }
-const step = d => { if (!tracks.length) return; loadTrack((idx + d + tracks.length) % tracks.length, true); };
+
+/* Логика переключения треков с учетом режимов */
+function getNextIndex() {
+  if (playMode === 'shuffle') {
+    if (tracks.length <= 1) return idx;
+    let next;
+    do { next = Math.floor(Math.random() * tracks.length); } while (next === idx);
+    return next;
+  }
+  return (idx + 1) % tracks.length;
+}
+
+const step = d => {
+  if (!tracks.length) return;
+  if (playMode === 'shuffle' && d > 0) {
+    loadTrack(getNextIndex(), true);
+  } else {
+    loadTrack((idx + d + tracks.length) % tracks.length, true);
+  }
+};
+
 $('prev').onclick = () => { step(-1); buzz(); };
 $('next').onclick = () => { step(1); buzz(); };
 $('play').onclick = () => { audio.paused ? play() : audio.pause(); buzz(); };
 function setOn(on) { $('play').classList.toggle('on', on); $('disc').classList.toggle('on', on); }
 audio.onplay = () => setOn(true);
 audio.onpause = () => setOn(false);
-audio.onended = () => { if (idx < tracks.length - 1) step(1); else setOn(false); };
+
+audio.onended = () => {
+  if (playMode === 'loop') {
+    audio.currentTime = 0;
+    play();
+  } else if (playMode === 'shuffle') {
+    loadTrack(getNextIndex(), true);
+  } else {
+    if (idx < tracks.length - 1) step(1); else { loadTrack(0, true); audio.pause(); setOn(false); }
+  }
+};
+
 audio.onerror = () => { $('sub').textContent = 'Формат не поддерживается'; };
 
 function mediaSession(f) {
@@ -340,14 +407,37 @@ function mediaSession(f) {
   } catch (e) {}
 }
 
-/* ===== Таймлайн ===== */
+/* ===== Таймлайн (исправленный перенос линии и эффект бегунка) ===== */
 const fmt = s => isFinite(s) ? Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') : '0:00';
 const seek = $('seek'); let drag = false;
-const paint = () => seek.style.setProperty('--p', seek.value + '%');
+
+const paint = () => {
+  const val = seek.value;
+  seek.style.setProperty('--p', val + '%');
+};
+
 audio.onloadedmetadata = () => { $('dur').textContent = fmt(audio.duration); applyAudio(); };
-audio.ontimeupdate = () => { if (drag || !audio.duration) return; seek.value = audio.currentTime / audio.duration * 100; $('cur').textContent = fmt(audio.currentTime); paint(); };
-seek.oninput = () => { drag = true; $('cur').textContent = fmt(seek.value / 100 * audio.duration); paint(); };
-seek.onchange = () => { audio.currentTime = seek.value / 100 * audio.duration; drag = false; };
+audio.ontimeupdate = () => { 
+  if (drag || !audio.duration) return; 
+  seek.value = (audio.currentTime / audio.duration) * 100; 
+  $('cur').textContent = fmt(audio.currentTime); 
+  paint(); 
+};
+
+seek.oninput = () => { 
+  drag = true; 
+  if(audio.duration) {
+    $('cur').textContent = fmt((seek.value / 100) * audio.duration); 
+  }
+  paint(); 
+};
+
+seek.onchange = () => { 
+  if(audio.duration) {
+    audio.currentTime = (seek.value / 100) * audio.duration; 
+  }
+  drag = false; 
+};
 
 /* ===== Скорость / тон / реверберация ===== */
 function syncSpeedUI(activePreset) {
@@ -359,16 +449,20 @@ function syncSpeedUI(activePreset) {
   $('speedChips').querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.p === activePreset));
   applyAudio();
 }
+
 $('speedChips').addEventListener('click', e => {
   const c = e.target.closest('.chip'); if (!c) return;
   Object.assign(st, SPEED[c.dataset.p]); syncSpeedUI(c.dataset.p); buzz();
 });
-$('rate').oninput = e => { st.rate = +e.target.value; syncSpeedUI(null); };
+
+const paintGeneric = r => r.style.setProperty('--p', ((r.value - r.min) / (r.max - r.min)) * 100 + '%');
+
+$('rate').oninput = e => { st.rate = +e.target.value; syncSpeedUI(null); paintGeneric(e.target); };
 $('keep').onchange = e => { st.keep = e.target.checked; syncSpeedUI(null); };
-$('rev').oninput = e => { st.rev = +e.target.value; syncSpeedUI(null); };
-const paintGeneric = r => r.style.setProperty('--p', (r.value - r.min) / (r.max - r.min) * 100 + '%');
-['rate', 'rev'].forEach(id => $(id).addEventListener('input', () => paintGeneric($(id))));
-syncSpeedUI('original'); ['rate', 'rev'].forEach(id => paintGeneric($(id)));
+$('rev').oninput = e => { st.rev = +e.target.value; syncSpeedUI(null); paintGeneric(e.target); };
+
+syncSpeedUI('original'); 
+['rate', 'rev'].forEach(id => paintGeneric($(id)));
 
 /* ===== Эквалайзер ===== */
 const sliders = BANDS.map((b, i) => {
