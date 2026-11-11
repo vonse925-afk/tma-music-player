@@ -21,23 +21,23 @@
   }
   button { font:inherit; color:inherit; border:0; background:none; cursor:pointer; }
 
-  /* ===== «Неоновая лужа»: жидкие размытые пятна, медленно перетекающие ===== */
-  .glow { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+  /* ===== Оптимизированная плавная «неоновая лужа» без лагов ===== */
+  .glow { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; transform:translateZ(0); }
   .glow i {
-    position:absolute; width:80vmax; height:80vmax; max-width:620px; max-height:620px;
-    border-radius:42% 58% 63% 37% / 45% 40% 60% 55%;
-    filter:blur(70px); opacity:.5; mix-blend-mode:screen;
-    animation:flow 18s ease-in-out infinite alternate;
+    position:absolute; width:60vw; height:60vw; max-width:450px; max-height:450px;
+    border-radius:50%; filter:blur(50px); opacity:.35; mix-blend-mode:screen;
+    animation:flow 14s ease-in-out infinite alternate;
+    will-change:transform;
   }
-  .glow i:nth-child(1){ background:#6f4cff; left:-25%; top:-8%; }
-  .glow i:nth-child(2){ background:#00c9b7; right:-30%; top:28%; animation-duration:23s; animation-delay:-6s; }
-  .glow i:nth-child(3){ background:#ff3f9e; left:-10%; bottom:-22%; animation-duration:27s; animation-delay:-12s; }
+  .glow i:nth-child(1){ background:#6f4cff; left:-10%; top:-10%; }
+  .glow i:nth-child(2){ background:#00c9b7; right:-15%; top:30%; animation-duration:18s; animation-delay:-4s; }
+  .glow i:nth-child(3){ background:#ff3f9e; left:10%; bottom:-15%; animation-duration:22s; animation-delay:-8s; }
   @keyframes flow {
-    0%  { transform:translate(0,0) rotate(0) scale(1);          border-radius:42% 58% 63% 37% / 45% 40% 60% 55%; }
-    50% { transform:translate(14vw,-8vh) rotate(90deg) scale(1.12); border-radius:60% 40% 38% 62% / 55% 60% 40% 45%; }
-    100%{ transform:translate(-8vw,10vh) rotate(200deg) scale(.95); border-radius:38% 62% 52% 48% / 62% 38% 62% 38%; }
+    0%  { transform:translate(0,0) scale(1); }
+    50% { transform:translate(8vw,-6vh) scale(1.1); }
+    100%{ transform:translate(-6vw,8vh) scale(.9); }
   }
-  .glow::after { content:""; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 40%, transparent 0, rgba(10,10,10,.55) 85%); }
+  .glow::after { content:""; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 40%, transparent 0, rgba(10,10,10,.6) 85%); }
   @media (prefers-reduced-motion:reduce){ .glow i{ animation:none; } }
 
   /* ===== Каркас ===== */
@@ -134,7 +134,6 @@
         <div class="sub" id="sub">Добавьте музыку из памяти телефона</div>
       </div>
       <button class="pick" id="pickBtn" type="button">+ Музыка</button>
-      <!-- multiple — можно выбрать сразу много файлов -->
       <input type="file" id="file" accept="audio/*" multiple>
     </div>
     <input type="range" id="seek" min="0" max="100" step="0.1" value="0" disabled aria-label="Позиция в треке">
@@ -159,7 +158,7 @@
 
   <!-- Плейлист -->
   <section class="card panel" id="p-list">
-    <div class="empty" id="empty">Плейлист пуст.<br>Нажмите «+ Музыка» и выберите сразу несколько файлов.</div>
+    <div class="empty" id="empty">Плейлист пуст.<br>Нажмите «+ Музыка» и выберите файлы.</div>
     <ul class="pl" id="pl"></ul>
   </section>
 
@@ -198,13 +197,11 @@ const buzz = () => { try { tg.HapticFeedback.selectionChanged(); } catch (e) {} 
 const $ = id => document.getElementById(id);
 
 /* ===== Настройки пресетов ===== */
-// Пресеты скорости: значения можно менять, а ползунок позволяет выставить любое своё
 const SPEED = {
   original: { rate: 1.0,  keep: true,  rev: 0 },
-  speed:    { rate: 1.3,  keep: true,  rev: 0 },
-  slowed:   { rate: 0.85, keep: false, rev: 45 }
+  speed:    { rate: 1.25, keep: true,  rev: 0 },
+  slowed:   { rate: 0.85, keep: false, rev: 30 }
 };
-// Эквалайзер: 5 полос (Гц), усиление в дБ
 const BANDS = [
   { f: 60,    t: 'lowshelf',  n: '60 Гц' },
   { f: 230,   t: 'peaking',   n: '230 Гц' },
@@ -214,17 +211,14 @@ const BANDS = [
 ];
 const EQ = { default: [0,0,0,0,0], bass: [9,5,0,-1,0], treble: [0,0,0,5,9] };
 
-const st = { rate: 1, keep: true, rev: 0 };   // текущие настройки звука
-const gains = [0,0,0,0,0];                     // текущие дБ эквалайзера
+const st = { rate: 1, keep: true, rev: 0 };
+const gains = [0,0,0,0,0];
 
-/* ===== Аудио-движок =====
-   audio → EQ (5 фильтров) ─┬─ dry ───────────┐
-                            └─ reverb → wet ──┴→ master → выход           */
 const audio = new Audio();
 audio.preload = 'auto';
 let ctx, filters = [], dry, wet, conv;
 
-function impulse(c, sec = 2.8, decay = 2.6) {
+function impulse(c, sec = 2.0, decay = 2.0) {
   const n = Math.floor(c.sampleRate * sec), b = c.createBuffer(2, n, c.sampleRate);
   for (let ch = 0; ch < 2; ch++) { const d = b.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/n, decay); }
   return b;
@@ -242,9 +236,8 @@ function initAudio() {
   last.connect(dry); last.connect(conv); conv.connect(wet); dry.connect(master); wet.connect(master); master.connect(ctx.destination);
   applyAudio();
 }
-/** Применяет скорость, режим тона и реверберацию */
 function applyAudio() {
-  audio.defaultPlaybackRate = st.rate;   // чтобы скорость не сбрасывалась при смене трека
+  audio.defaultPlaybackRate = st.rate;
   audio.playbackRate = st.rate;
   audio.preservesPitch = audio.mozPreservesPitch = audio.webkitPreservesPitch = st.keep;
   if (ctx) {
@@ -264,7 +257,7 @@ $('tabs').addEventListener('click', e => {
   buzz();
 });
 
-/* ===== Плейлист ===== */
+/* ===== Плейлист (Исправленный множественный выбор пачкой) ===== */
 let tracks = [], idx = -1;
 const AUDIO_RE = /\.(mp3|wav|m4a|aac|ogg|oga|flac|opus|weba|wma)$/i;
 const nameOf = f => f.name.replace(/\.[^.]+$/, '');
@@ -272,17 +265,30 @@ const nameOf = f => f.name.replace(/\.[^.]+$/, '');
 $('pickBtn').onclick = () => $('file').click();
 $('file').onchange = e => {
   const list = [...e.target.files].filter(f => f.type.startsWith('audio') || AUDIO_RE.test(f.name));
-  e.target.value = '';                                // можно выбрать те же файлы снова
+  e.target.value = ''; 
   if (!list.length) return;
-  const first = tracks.length;
+  
+  const firstTimeEmpty = tracks.length === 0;
   tracks.push(...list);
   renderList();
-  if (idx < 0) loadTrack(first, false);
+  
+  if (firstTimeEmpty) {
+    loadTrack(0, false);
+  }
   $('prev').disabled = $('next').disabled = false;
+  buzz();
 };
+
 function renderList() {
   const ul = $('pl'), frag = document.createDocumentFragment();
-  tracks.forEach((f, i) => { const li = document.createElement('li'); li.dataset.i = i; const s = document.createElement('span'); s.textContent = nameOf(f); li.append(s); frag.append(li); });
+  tracks.forEach((f, i) => { 
+    const li = document.createElement('li'); 
+    li.dataset.i = i; 
+    const s = document.createElement('span'); 
+    s.textContent = nameOf(f); 
+    li.append(s); 
+    frag.append(li); 
+  });
   ul.replaceChildren(frag);
   $('empty').hidden = tracks.length > 0;
   markCurrent();
@@ -296,8 +302,8 @@ $('pl').addEventListener('click', e => { const li = e.target.closest('li'); if (
 let url = '';
 function loadTrack(i, autoplay) {
   idx = i;
-  if (url) URL.revokeObjectURL(url);                  // освобождаем память
-  url = URL.createObjectURL(tracks[i]);               // blob создаётся только для играющего трека
+  if (url) URL.revokeObjectURL(url);
+  url = URL.createObjectURL(tracks[i]);
   audio.src = url;
   applyAudio();
   $('title').textContent = nameOf(tracks[i]);
@@ -311,19 +317,18 @@ function loadTrack(i, autoplay) {
 async function play() {
   initAudio();
   if (ctx.state === 'suspended') await ctx.resume();
-  try { await audio.play(); } catch (e) { $('sub').textContent = 'Не удалось воспроизвести этот файл'; }
+  try { await audio.play(); } catch (e) { $('sub').textContent = 'Ошибка воспроизведения'; }
 }
 const step = d => { if (!tracks.length) return; loadTrack((idx + d + tracks.length) % tracks.length, true); };
-$('prev').onclick = () => step(-1);
-$('next').onclick = () => step(1);
-$('play').onclick = () => audio.paused ? play() : audio.pause();
+$('prev').onclick = () => { step(-1); buzz(); };
+$('next').onclick = () => { step(1); buzz(); };
+$('play').onclick = () => { audio.paused ? play() : audio.pause(); buzz(); };
 function setOn(on) { $('play').classList.toggle('on', on); $('disc').classList.toggle('on', on); }
 audio.onplay = () => setOn(true);
 audio.onpause = () => setOn(false);
-audio.onended = () => { if (idx < tracks.length - 1) step(1); else setOn(false); };   // автопереход
-audio.onerror = () => { $('sub').textContent = 'Формат не поддерживается устройством'; };
+audio.onended = () => { if (idx < tracks.length - 1) step(1); else setOn(false); };
+audio.onerror = () => { $('sub').textContent = 'Формат не поддерживается'; };
 
-/* Управление с экрана блокировки / из шторки */
 function mediaSession(f) {
   if (!('mediaSession' in navigator)) return;
   try {
@@ -358,7 +363,7 @@ $('speedChips').addEventListener('click', e => {
   const c = e.target.closest('.chip'); if (!c) return;
   Object.assign(st, SPEED[c.dataset.p]); syncSpeedUI(c.dataset.p); buzz();
 });
-$('rate').oninput = e => { st.rate = +e.target.value; syncSpeedUI(null); };   // ручная настройка — пресет снимается
+$('rate').oninput = e => { st.rate = +e.target.value; syncSpeedUI(null); };
 $('keep').onchange = e => { st.keep = e.target.checked; syncSpeedUI(null); };
 $('rev').oninput = e => { st.rev = +e.target.value; syncSpeedUI(null); };
 const paintGeneric = r => r.style.setProperty('--p', (r.value - r.min) / (r.max - r.min) * 100 + '%');
