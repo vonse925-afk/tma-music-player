@@ -377,7 +377,6 @@ $('payGrid').addEventListener('click', e => {
 
 $('submitPayBtn').onclick = () => {
   if (selectedMethod === 'stars') {
-    // Вызов встроенного механизма оплаты Telegram Stars
     try {
       tg.openInvoice("https://t.me/invoice/example", (status) => {
         if (status === 'paid') { alert('PRO успешно активирован!'); }
