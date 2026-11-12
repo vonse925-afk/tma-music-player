@@ -94,30 +94,31 @@
   .card { background:var(--card); border:1px solid var(--line); border-radius:22px; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
 
   /* ===== Плеер ===== */
-  .now { padding:16px 16px 10px; }
-  .row { display:flex; align-items:center; gap:12px; }
+  .now { padding:14px; }
+  .row { display:flex; align-items:center; gap:10px; }
   .disc {
-    flex:none; width:58px; height:58px; border-radius:50%; border:1px solid var(--line);
+    flex:none; width:52px; height:52px; border-radius:50%; border:1px solid var(--line);
     background:radial-gradient(circle,var(--accent) 0 11%,var(--bg) 12% 14%,#1d1d1d 15% 60%,#111 61%);
   }
   .disc.on { animation:spin 7s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
   .meta { min-width:0; flex:1; }
-  .title { font-size:17px; font-weight:650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .sub { font-size:13px; color:var(--muted); margin-top:2px; }
-  .actions { display:flex; gap:6px; flex:none; }
-  .pick { background:var(--card-2); border:1px solid var(--line); border-radius:14px; padding:10px 12px; font-size:13px; font-weight:600; }
+  .title { font-size:16px; font-weight:650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sub { font-size:12px; color:var(--muted); margin-top:2px; }
+  
+  .actions { display:flex; gap:6px; flex:none; align-items:center; }
+  .pick { background:var(--card-2); border:1px solid var(--line); border-radius:12px; padding:8px 10px; font-size:12px; font-weight:600; white-space:nowrap; }
   .pick:active { opacity:.6; }
   .pro-badge {
     background:linear-gradient(135deg, var(--accent), #ff007f); color:var(--ink);
-    font-size:13px; font-weight:700; padding:10px 12px; border-radius:14px;
-    box-shadow: 0 0 12px var(--accent-glow);
+    font-size:12px; font-weight:700; padding:8px 10px; border-radius:12px;
+    box-shadow: 0 0 10px var(--accent-glow); white-space:nowrap;
   }
   .pro-badge:active { transform:scale(0.95); }
   #file { display:none; }
 
   /* Ползунки */
-  .seek-box { position: relative; width: 100%; margin: 4px 0; }
+  .seek-box { position: relative; width: 100%; margin: 6px 0 2px; }
   input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:26px; margin:0; background:transparent; cursor:pointer; position: relative; z-index: 2; }
   input[type=range]::-webkit-slider-runnable-track { height:4px; border-radius:4px; background:linear-gradient(to right,var(--accent) var(--p,0%),rgba(255,255,255,.14) var(--p,0%)); }
   input[type=range]::-moz-range-track { height:4px; border-radius:4px; background:rgba(255,255,255,.14); }
@@ -145,12 +146,12 @@
 
   .times { display:flex; justify-content:space-between; font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
 
-  .ctrl { display:flex; justify-content:space-between; align-items:center; padding:6px 0 4px; }
-  .ctrl button { width:42px; height:42px; border-radius:50%; display:grid; place-items:center; color:var(--muted); }
+  .ctrl { display:flex; justify-content:space-between; align-items:center; padding:4px 0 2px; }
+  .ctrl button { width:40px; height:40px; border-radius:50%; display:grid; place-items:center; color:var(--muted); }
   .ctrl button.active-mode { color:var(--accent); text-shadow:0 0 8px var(--accent); }
   .ctrl button:active { background:var(--card-2); }
-  .ctrl svg { width:22px; height:22px; fill:currentColor; }
-  .ctrl .play { width:60px; height:60px; background:var(--text); color:var(--bg); border-radius:50%; }
+  .ctrl svg { width:20px; height:20px; fill:currentColor; }
+  .ctrl .play { width:54px; height:54px; background:var(--text); color:var(--bg); border-radius:50%; }
   .ctrl .play:active { transform:scale(.94); }
   .play .i2, .play.on .i1 { display:none; } .play.on .i2 { display:block; }
   button:disabled { opacity:.3; }
@@ -201,7 +202,7 @@
   .band .sl { position:relative; height:150px; }
   .band input { position:absolute; width:140px; left:50%; top:50%; transform:translate(-50%,-50%) rotate(-90deg); }
 
-  /* ===== Модальное окно Midnight Vibe PRO ===== */
+  /* ===== Модальное окно PRO ===== */
   .modal-overlay {
     position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.75); backdrop-filter:blur(10px);
     display:flex; align-items:flex-end; justify-content:center; opacity:0; pointer-events:none; transition:opacity .3s;
@@ -239,7 +240,7 @@
       <div class="disc" id="disc"></div>
       <div class="meta">
         <div class="title" id="title">Трек не выбран</div>
-        <div class="sub" id="sub">Добавьте музыку из памяти телефона</div>
+        <div class="sub" id="sub">Добавьте музыку</div>
       </div>
       <div class="actions">
         <button class="pro-badge" id="proBtn" type="button">PRO</button>
@@ -265,7 +266,7 @@
         <svg class="i2" viewBox="0 0 24 24"><rect x="6" y="5" width="4.5" height="14" rx="1.2"/><rect x="13.5" y="5" width="4.5" height="14" rx="1.2"/></svg>
       </button>
       <button id="next" type="button" disabled aria-label="Следующий"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5.5v13a.8.8 0 0 0 1.25.66l9.25-6.5a.8.8 0 0 0 0-1.32L5.25 4.84A.8.8 0 0 0 4 5.5z"/></svg></button>
-      <div style="width:42px;"></div>
+      <div style="width:40px;"></div>
     </div>
   </section>
 
